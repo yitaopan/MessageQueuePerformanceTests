@@ -68,6 +68,7 @@ namespace MessageQueuePerformanceTests.Controllers
                 }
                 foreach (var message in await receiver.ReceiveMessagesAsync(DEFAULT_DISCARD_MESSAGE_BATCH_SIZE))
                 {
+                    messageCount++;
                     await receiver.CompleteMessageAsync(message);
                 }
             } while (true);
