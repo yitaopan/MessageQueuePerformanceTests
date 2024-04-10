@@ -19,11 +19,19 @@ namespace MessageQueuePerformanceTests.Controllers
         {
             string message = "Hello, World!";
 
+            Stopwatch stopwatch = new();
+
+            stopwatch.Start();
             QueueClient queueClient = new(new Uri(STORAGE_QUEUE_URI), new DefaultAzureCredential());
             await queueClient.CreateIfNotExistsAsync();
+            stopwatch.Stop();
+            TimeSpan setupClientDuration = stopwatch.Elapsed;
 
             // Incase first message is slower
+            stopwatch.Restart();
             await queueClient.SendMessageAsync(message);
+            stopwatch.Stop();
+            TimeSpan firstMessageDuration = stopwatch.Elapsed;
 
             List<Task> sendMessageTasks = [];
             for (int i = 0; i < messageCount; i++)
@@ -31,13 +39,15 @@ namespace MessageQueuePerformanceTests.Controllers
                 sendMessageTasks.Add(queueClient.SendMessageAsync(message));
             }
 
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
+            stopwatch.Restart();
             await Task.WhenAll(sendMessageTasks);
             stopwatch.Stop();
             TimeSpan duration = stopwatch.Elapsed;
 
-            return Ok($"Duration for sending {messageCount} messages: {duration}");
+            return Ok($"{messageCount + 1} messages sent.\n" +
+                $"Setup client duration: {setupClientDuration}\n" +
+                $"Send first message duration: {firstMessageDuration}\n" +
+                $"Send other {messageCount} message duration: {duration}");
         }
 
         [HttpPost("storagequeue/discard/all")]

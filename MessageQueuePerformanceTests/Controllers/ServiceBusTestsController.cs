@@ -19,15 +19,23 @@ namespace MessageQueuePerformanceTests.Controllers
         {
             ServiceBusMessage message = new("Hello, World!");
 
+            Stopwatch stopwatch = new();
+
+            stopwatch.Start();
             ServiceBusClientOptions clientOptions = new()
             {
                 TransportType = ServiceBusTransportType.AmqpWebSockets,
             };
             ServiceBusClient client = new(SERVICE_BUS_NAMESAPCE, new DefaultAzureCredential(), clientOptions);
             ServiceBusSender sender = client.CreateSender(SERVICE_BUS_QUEUE_NAME);
+            stopwatch.Stop();
+            TimeSpan setupClientDuration = stopwatch.Elapsed;
 
             // Incase first message is slower
+            stopwatch.Restart();
             await sender.SendMessageAsync(message);
+            stopwatch.Stop();
+            TimeSpan firstMessageDuration = stopwatch.Elapsed;
 
             List<Task> sendMessageTasks = [];
             for (int i = 0; i < messageCount; i++)
@@ -35,13 +43,15 @@ namespace MessageQueuePerformanceTests.Controllers
                 sendMessageTasks.Add(sender.SendMessageAsync(message));
             }
 
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
+            stopwatch.Restart();
             await Task.WhenAll(sendMessageTasks);
             stopwatch.Stop();
             TimeSpan duration = stopwatch.Elapsed;
 
-            return Ok($"Duration for sending {messageCount} messages: {duration}");
+            return Ok($"{messageCount + 1} messages sent.\n" +
+                $"Setup client duration: {setupClientDuration}\n" +
+                $"Send first message duration: {firstMessageDuration}\n" +
+                $"Send other {messageCount} message duration: {duration}");
         }
 
         [HttpPost("servicebus/discard/all")]
