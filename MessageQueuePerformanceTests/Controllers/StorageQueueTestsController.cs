@@ -15,13 +15,14 @@ namespace MessageQueuePerformanceTests.Controllers
         private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 10;
 
         [HttpPost("storagequeue/send")]
-        public async Task<IActionResult> SendStorageQueue([FromQuery] int messageCount = 1)
+        public async Task<IActionResult> SendStorageQueueMessages([FromQuery] int messageCount = 1)
         {
             string message = "Hello, World!";
 
             QueueClient queueClient = new(new Uri(STORAGE_QUEUE_URI), new DefaultAzureCredential());
             await queueClient.CreateIfNotExistsAsync();
 
+            // Incase first message is slower
             await queueClient.SendMessageAsync(message);
 
             List<Task> sendMessageTasks = [];
@@ -45,14 +46,20 @@ namespace MessageQueuePerformanceTests.Controllers
             QueueClient queueClient = new(new Uri(STORAGE_QUEUE_URI), new DefaultAzureCredential());
             await queueClient.CreateIfNotExistsAsync();
 
+            int messageCount = 0;
+            Stopwatch stopwatch = new();
+            stopwatch.Start();
             do
             {
                 if ((await queueClient.PeekMessageAsync()).Value == null)
                 {
-                    return Ok("All messages discarded.");
+                    stopwatch.Stop();
+                    TimeSpan duration = stopwatch.Elapsed;
+                    return Ok($"{messageCount} messages discarded, duration: {duration}.");
                 }
                 foreach (var message in (await queueClient.ReceiveMessagesAsync(maxMessages: DEFAULT_DISCARD_MESSAGE_BATCH_SIZE)).Value)
                 {
+                    messageCount++;
                     await queueClient.DeleteMessageAsync(message.MessageId, message.PopReceipt);
                 }
             } while (true);
