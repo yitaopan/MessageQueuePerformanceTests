@@ -1,0 +1,23 @@
+kind: Job
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: message-queue-performance-tests-console
+        image: yitaoacr.azurecr.io/message-queue-performance-tests-console:latest
+        imagePullPolicy: Always
+        args:
+        - testCommand
+        resources:
+          requests:
+            memory: 2000Mi
+            cpu: 250m
+          limits:
+            memory: 2000Mi
+            cpu: 250m
+  backoffLimit: 6
+  ttlSecondsAfterFinished: 1800
+apiVersion: batch/v1
+metadata:
+  name: test-mq
