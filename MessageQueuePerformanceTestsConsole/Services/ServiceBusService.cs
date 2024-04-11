@@ -9,6 +9,7 @@ namespace MessageQueuePerformanceTestsConsole.Services
         private const string SERVICE_BUS_NAME = "yitaotestsb";
         private const string SERVICE_BUS_NAMESAPCE = $"{SERVICE_BUS_NAME}.servicebus.windows.net";
         private const string SERVICE_BUS_QUEUE_NAME = "yitaotestqueuesb";
+        private const string SERVICE_BUS_CONNECTION_STRING = "";
 
         private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 10;
 
@@ -23,11 +24,7 @@ namespace MessageQueuePerformanceTestsConsole.Services
             {
                 TransportType = ServiceBusTransportType.AmqpWebSockets,
             };
-            ServiceBusClient client = new(SERVICE_BUS_NAMESAPCE,new DefaultAzureCredential(
-                new DefaultAzureCredentialOptions()
-                {
-                    ManagedIdentityClientId = "965124b5-ff7a-4929-8301-4d16759229b4",
-                }), clientOptions);
+            ServiceBusClient client = new(SERVICE_BUS_CONNECTION_STRING);
             ServiceBusSender sender = client.CreateSender(SERVICE_BUS_QUEUE_NAME);
             stopwatch.Stop();
             TimeSpan setupClientDuration = stopwatch.Elapsed;
@@ -38,24 +35,22 @@ namespace MessageQueuePerformanceTestsConsole.Services
             stopwatch.Stop();
             TimeSpan firstMessageDuration = stopwatch.Elapsed;
 
-            List<Task> sendMessageTasks = [];
-            for (int i = 0; i < messageCount; i++)
-            {
-                sendMessageTasks.Add(sender.SendMessageAsync(message));
-            }
-
             stopwatch.Restart();
-            await Task.WhenAll(sendMessageTasks);
+            Parallel.ForEach(Enumerable.Range(0, messageCount), async i =>
+            {
+                await sender.SendMessageAsync(message);
+            });
             stopwatch.Stop();
             TimeSpan duration = stopwatch.Elapsed;
 
-            return $"{messageCount + 1} messages sent.\n" +
+            return $"========== ServiceBus ==========\n" + 
+                $"{messageCount + 1} messages sent.\n" +
                 $"Setup client duration: {setupClientDuration}\n" +
                 $"Send first message duration: {firstMessageDuration}\n" +
                 $"Send other {messageCount} message duration: {duration}";
         }
 
-        public async Task<string> DiscardAllServiceBusMessages()
+        public static async Task<string> DiscardAllServiceBusMessages()
         {
             ServiceBusClientOptions clientOptions = new()
             {
