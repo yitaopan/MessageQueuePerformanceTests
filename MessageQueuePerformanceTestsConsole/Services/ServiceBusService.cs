@@ -1,30 +1,26 @@
 ﻿using Azure.Identity;
 using Azure.Messaging.ServiceBus;
+using MessageQueuePerformanceTestsConsole.Models;
 using System.Diagnostics;
 
 namespace MessageQueuePerformanceTestsConsole.Services
 {
-    public class ServiceBusService
+    public class ServiceBusService : IMessageQueueService
     {
         private const string SERVICE_BUS_NAME = "yitaotestsb";
         private const string SERVICE_BUS_NAMESAPCE = $"{SERVICE_BUS_NAME}.servicebus.windows.net";
         private const string SERVICE_BUS_QUEUE_NAME = "yitaotestqueuesb";
-        private const string SERVICE_BUS_CONNECTION_STRING = "";
 
         private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 10;
 
-        public static async Task<string> SendServiceBusMessages(int messageCount = 1)
+        public  async Task<TestResult> SendMessages(int messageCount = 1)
         {
             ServiceBusMessage message = new("Hello, World!");
 
             Stopwatch stopwatch = new();
 
             stopwatch.Start();
-            ServiceBusClientOptions clientOptions = new()
-            {
-                TransportType = ServiceBusTransportType.AmqpWebSockets,
-            };
-            ServiceBusClient client = new(SERVICE_BUS_CONNECTION_STRING);
+            ServiceBusClient client = new(Environment.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STRING"));
             ServiceBusSender sender = client.CreateSender(SERVICE_BUS_QUEUE_NAME);
             stopwatch.Stop();
             TimeSpan setupClientDuration = stopwatch.Elapsed;
@@ -36,21 +32,29 @@ namespace MessageQueuePerformanceTestsConsole.Services
             TimeSpan firstMessageDuration = stopwatch.Elapsed;
 
             stopwatch.Restart();
-            Parallel.ForEach(Enumerable.Range(0, messageCount), async i =>
+            //Parallel.ForEach(Enumerable.Range(0, messageCount), async i =>
+            //{
+            //    await sender.SendMessageAsync(message);
+            //});
+            List<Task> sendMessageTasks = [];
+            for (int i = 0; i < messageCount; i++)
             {
-                await sender.SendMessageAsync(message);
-            });
+                sendMessageTasks.Add(sender.SendMessageAsync(message));
+            }
+            await Task.WhenAll(sendMessageTasks);
             stopwatch.Stop();
             TimeSpan duration = stopwatch.Elapsed;
 
-            return $"========== ServiceBus ==========\n" + 
-                $"{messageCount + 1} messages sent.\n" +
-                $"Setup client duration: {setupClientDuration}\n" +
-                $"Send first message duration: {firstMessageDuration}\n" +
-                $"Send other {messageCount} message duration: {duration}";
+            return new()
+            {
+                TotalMessageCount = messageCount + 1,
+                SetupClientDuration = setupClientDuration,
+                FirstMessageDuration = firstMessageDuration,
+                Duration = duration,
+            };
         }
 
-        public static async Task<string> DiscardAllServiceBusMessages()
+        public async Task<string> DiscardAllMessages()
         {
             ServiceBusClientOptions clientOptions = new()
             {

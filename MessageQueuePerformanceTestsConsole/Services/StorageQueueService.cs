@@ -1,26 +1,26 @@
 ﻿using Azure.Identity;
 using Azure.Storage.Queues;
+using MessageQueuePerformanceTestsConsole.Models;
 using System.Diagnostics;
 
 namespace MessageQueuePerformanceTestsConsole.Services
 {
-    public class StorageQueueService
+    public class StorageQueueService : IMessageQueueService
     {
         private const string STORAGE_ACCOUNT_NAME = "yitaoteststandardsa";
         private const string STORAGE_QUEUE_NAME = "yitaotestqueuesa";
         private const string STORAGE_QUEUE_URI = $"https://{STORAGE_ACCOUNT_NAME}.queue.core.windows.net/{STORAGE_QUEUE_NAME}";
-        private const string STORAGE_ACCOUNT_CONNECTION_STRING = "";
 
         private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 10;
 
-        public static async Task<string> SendStorageQueueMessages(int messageCount = 1)
+        public async Task<TestResult> SendMessages(int messageCount = 1)
         {
             string message = "Hello, World!";
 
             Stopwatch stopwatch = new();
 
             stopwatch.Start();
-            QueueClient queueClient = new(STORAGE_ACCOUNT_CONNECTION_STRING, STORAGE_QUEUE_NAME);
+            QueueClient queueClient = new(Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_CONNECTION_STRING"), STORAGE_QUEUE_NAME);
             await queueClient.CreateIfNotExistsAsync();
             stopwatch.Stop();
             TimeSpan setupClientDuration = stopwatch.Elapsed;
@@ -32,21 +32,29 @@ namespace MessageQueuePerformanceTestsConsole.Services
             TimeSpan firstMessageDuration = stopwatch.Elapsed;
 
             stopwatch.Restart();
-            Parallel.ForEach(Enumerable.Range(0, messageCount), async i =>
+            //Parallel.ForEach(Enumerable.Range(0, messageCount), async i =>
+            //{
+            //    await queueClient.SendMessageAsync(message);
+            //});
+            List<Task> sendMessageTasks = [];
+            for (int i = 0; i < messageCount; i++)
             {
-                await queueClient.SendMessageAsync(message);
-            });
+                sendMessageTasks.Add(queueClient.SendMessageAsync(message));
+            }
+            await Task.WhenAll(sendMessageTasks);
             stopwatch.Stop();
             TimeSpan duration = stopwatch.Elapsed;
 
-            return $"========== StorageQueue ==========\n" +
-                $"{messageCount + 1} messages sent.\n" +
-                $"Setup client duration: {setupClientDuration}\n" +
-                $"Send first message duration: {firstMessageDuration}\n" +
-                $"Send other {messageCount} message duration: {duration}";
+            return new()
+            {
+                TotalMessageCount = messageCount + 1,
+                SetupClientDuration = setupClientDuration,
+                FirstMessageDuration = firstMessageDuration,
+                Duration = duration,
+            };
         }
 
-        public static async Task<string> DiscardAllStorageQueueMessages()
+        public async Task<string> DiscardAllMessages()
         {
             QueueClient queueClient = new(new Uri(STORAGE_QUEUE_URI), new DefaultAzureCredential(
                 new DefaultAzureCredentialOptions()
