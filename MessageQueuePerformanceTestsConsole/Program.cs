@@ -43,8 +43,11 @@ namespace MessageQueuePerformanceTestsConsole
             for (int i = 0; i < DEFAULT_TEST_TIMES; i++)
             {
                 results.TestResults.Add(await queueService.SendMessages(messageCount));
+                Console.WriteLine($"Batch {i + 1} messages sent.");
+                await queueService.DiscardAllMessages();
+                Console.WriteLine($"Batch {i + 1} messages discarded.");
             }
-            Console.WriteLine(results.PrintTestResults($"Send {messageCount} messages to {queueService.GetType()} for {DEFAULT_TEST_TIMES}"));
+            Console.WriteLine(results.PrintTestResults($"Send {messageCount} messages to {queueService.GetType()} for {DEFAULT_TEST_TIMES} times."));
         }
     }
 }

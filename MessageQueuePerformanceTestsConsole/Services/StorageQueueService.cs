@@ -10,8 +10,9 @@ namespace MessageQueuePerformanceTestsConsole.Services
         private const string STORAGE_ACCOUNT_NAME = "yitaoteststandardsa";
         private const string STORAGE_QUEUE_NAME = "yitaotestqueuesa";
         private const string STORAGE_QUEUE_URI = $"https://{STORAGE_ACCOUNT_NAME}.queue.core.windows.net/{STORAGE_QUEUE_NAME}";
+        private string STORAGE_QUEUE_CONNECTION_STRING = "";
 
-        private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 10;
+        private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 32;
 
         public async Task<TestResult> SendMessages(int messageCount = 1)
         {
@@ -20,7 +21,8 @@ namespace MessageQueuePerformanceTestsConsole.Services
             Stopwatch stopwatch = new();
 
             stopwatch.Start();
-            QueueClient queueClient = new(Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_CONNECTION_STRING"), STORAGE_QUEUE_NAME);
+            //QueueClient queueClient = new(Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_CONNECTION_STRING"), STORAGE_QUEUE_NAME);
+            QueueClient queueClient = new(STORAGE_QUEUE_CONNECTION_STRING, STORAGE_QUEUE_NAME);
             await queueClient.CreateIfNotExistsAsync();
             stopwatch.Stop();
             TimeSpan setupClientDuration = stopwatch.Elapsed;
@@ -56,11 +58,8 @@ namespace MessageQueuePerformanceTestsConsole.Services
 
         public async Task<string> DiscardAllMessages()
         {
-            QueueClient queueClient = new(new Uri(STORAGE_QUEUE_URI), new DefaultAzureCredential(
-                new DefaultAzureCredentialOptions()
-                {
-                    ManagedIdentityClientId = "965124b5-ff7a-4929-8301-4d16759229b4",
-                }));
+            //QueueClient queueClient = new(Environment.GetEnvironmentVariable("STORAGE_ACCOUNT_CONNECTION_STRING"), STORAGE_QUEUE_NAME);
+            QueueClient queueClient = new(STORAGE_QUEUE_CONNECTION_STRING, STORAGE_QUEUE_NAME);
             await queueClient.CreateIfNotExistsAsync();
 
             int messageCount = 0;

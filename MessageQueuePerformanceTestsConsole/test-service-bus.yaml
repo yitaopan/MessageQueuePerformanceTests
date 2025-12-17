@@ -9,7 +9,7 @@ spec:
         imagePullPolicy: Always
         args:
         - "sendservicebus"
-        - "1000"
+        - "100"
         resources:
           requests:
             memory: 2000Mi

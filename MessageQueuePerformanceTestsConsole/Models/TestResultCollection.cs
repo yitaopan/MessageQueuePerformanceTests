@@ -8,9 +8,9 @@
         {
             string result = $"Result for {testName}:\n" +
                 $"{"TotalMessageCount", -30}" +
-                $"{"SetupClientDuration", -30}" +
-                $"{"FirstMessageDuration", -30}" +
-                $"{"Duration", -30}\n";
+                $"{"SetupClientDuration (ms)", -30}" +
+                $"{"FirstMessageDuration (ms)", -30}" +
+                $"{"Duration (ms)", -30}\n";
 
             double averageSetupClientDurations = 0;
             double averageFirstMessageDurations = 0;

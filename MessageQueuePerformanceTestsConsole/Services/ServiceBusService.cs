@@ -10,8 +10,9 @@ namespace MessageQueuePerformanceTestsConsole.Services
         private const string SERVICE_BUS_NAME = "yitaotestsb";
         private const string SERVICE_BUS_NAMESAPCE = $"{SERVICE_BUS_NAME}.servicebus.windows.net";
         private const string SERVICE_BUS_QUEUE_NAME = "yitaotestqueuesb";
+        private const string SERVICE_BUS_CONNECTION_STRING = "";
 
-        private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 10;
+        private const int DEFAULT_DISCARD_MESSAGE_BATCH_SIZE = 100;
 
         public  async Task<TestResult> SendMessages(int messageCount = 1)
         {
@@ -20,7 +21,8 @@ namespace MessageQueuePerformanceTestsConsole.Services
             Stopwatch stopwatch = new();
 
             stopwatch.Start();
-            ServiceBusClient client = new(Environment.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STRING"));
+            //ServiceBusClient client = new(Environment.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STRING"));
+            ServiceBusClient client = new(SERVICE_BUS_CONNECTION_STRING);
             ServiceBusSender sender = client.CreateSender(SERVICE_BUS_QUEUE_NAME);
             stopwatch.Stop();
             TimeSpan setupClientDuration = stopwatch.Elapsed;
@@ -56,15 +58,8 @@ namespace MessageQueuePerformanceTestsConsole.Services
 
         public async Task<string> DiscardAllMessages()
         {
-            ServiceBusClientOptions clientOptions = new()
-            {
-                TransportType = ServiceBusTransportType.AmqpWebSockets,
-            };
-            ServiceBusClient client = new(SERVICE_BUS_NAMESAPCE, new DefaultAzureCredential(
-                new DefaultAzureCredentialOptions()
-                {
-                    ManagedIdentityClientId = "965124b5-ff7a-4929-8301-4d16759229b4",
-                }), clientOptions);
+            //ServiceBusClient client = new(Environment.GetEnvironmentVariable("SERVICE_BUS_CONNECTION_STRING"));
+            ServiceBusClient client = new(SERVICE_BUS_CONNECTION_STRING);
             ServiceBusReceiver receiver = client.CreateReceiver(SERVICE_BUS_QUEUE_NAME);
 
 
